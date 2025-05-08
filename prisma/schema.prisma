@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String  @id @default(uuid())
+  email        String  @unique
+  passwordHash String
+  roles        Role[]
+  teamId       String?
+  team         Team?   @relation(fields: [teamId], references: [id])
+
+  @@map("user")
+}
+
+enum Role {
+  Coach
+  Player
+  Analyst
+  Owner
+
+  @@map("role")
+}
+
+model Team {
+  id       String    @id @default(uuid())
+  name     String
+  ownerId  String
+  subTeams SubTeam[]
+  players  Player[]
+  seasons  Season[]
+  user     User[]
+
+  @@map("team")
+}
+
+model SubTeam {
+  id      String   @id @default(uuid())
+  name    String
+  teamId  String
+  players Player[]
+  team    Team     @relation(fields: [teamId], references: [id])
+
+  @@map("sub_team")
+}
+
+model Player {
+  id           String   @id @default(uuid())
+  name         String
+  nickname     String?
+  dateOfBirth  DateTime
+  jerseyNumber Int
+  height       Float
+  position     String
+  handedness   String
+  active       Boolean
+  notes        String?
+  teamId       String
+  subTeamId    String?
+  team         Team     @relation(fields: [teamId], references: [id])
+  subTeam      SubTeam? @relation(fields: [subTeamId], references: [id])
+
+  @@map("player")
+}
+
+model Season {
+  id      String  @id @default(uuid())
+  name    String
+  teamId  String
+  matches Match[]
+  team    Team    @relation(fields: [teamId], references: [id])
+
+  @@map("season")
+}
+
+model Match {
+  id         String       @id @default(uuid())
+  seasonId   String
+  opponent   String
+  location   String
+  date       DateTime
+  matchType  String
+  setScores  Json
+  finalScore String
+  events     MatchEvent[]
+  season     Season       @relation(fields: [seasonId], references: [id])
+
+  @@map("match")
+}
+
+model MatchEvent {
+  id      String @id @default(uuid())
+  matchId String
+  type    String // "attack", "serve", "defense"
+  data    Json // dynamic based on type
+  match   Match  @relation(fields: [matchId], references: [id])
+
+  @@map("match_event")
+}
